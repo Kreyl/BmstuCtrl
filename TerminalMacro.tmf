@@ -1,0 +1,49 @@
+# Terminal macro file v2
+Ping
+##Ping#010#013
+GetLines
+##GetLines#010#013
+0000
+##SetLines 0 0 0 0#010#013
+0001
+##SetLines 0 0 0 1#010#013
+0010
+##SetLines 0 0 1 0#010#013
+0011
+##SetLines 0 0 1 1#010#013
+0100
+##SetLines 0 1 0 0#010#013
+0101
+##SetLines 0 1 0 1#010#013
+0110
+##SetLines 0 1 1 0#010#013
+0111
+##SetLines 0 1 1 1#010#013
+1000
+##SetLines 1 0 0 0#010#013
+1001
+##SetLines 1 0 0 1#010#013
+1010
+##SetLines 1 0 1 0#010#013
+1011
+##SetLines 1 0 1 1#010#013
+1100
+##SetLines 1 1 0 0#010#013
+1101
+##SetLines 1 1 0 1#010#013
+1110
+##SetLines 1 1 1 0#010#013
+1111
+##SetLines 1 1 1 1#010#013
+
+
+
+
+
+
+
+
+
+
+
+

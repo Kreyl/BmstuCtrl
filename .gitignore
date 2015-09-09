@@ -1,0 +1,6 @@
+BmstuCtrl_hw/BmstuCtrl.kicad_pcb-bak
+BmstuCtrl_hw/BmstuCtrl.dsn
+*.bak
+BmstuCtrl_fw/Debug/
+BmstuCtrl_fw/.settings/language.settings.xml
+BmstuCtrl_fw/.settings/org.eclipse.cdt.managedbuilder.core.prefs
