@@ -46,6 +46,8 @@ int main(void) {
     chSysInit();
 
     // ==== Init Hard & Soft ====
+    App.PThread = chThdSelf();
+
     Uart.Init(115200);
     Uart.Printf("\rBmstuCtrl AHB=%u", Clk.AHBFreqHz);
     if(ClkRslt != OK) Uart.Printf("\rClk switch failure");
@@ -59,8 +61,7 @@ int main(void) {
     // Led init
     PinSetupOut(LED_GPIO, LED_PIN, omPushPull);
 
-//    App.Init();
-    App.PThread = chThdSelf();
+    App.UartImInit(); // Imitator's UART
 
     // Timers
     chSysLock();
@@ -75,14 +76,16 @@ void App_t::ITask() {
     uint32_t EvtMsk = chEvtWaitAny(ALL_EVENTS);
     // ==== Uart cmd ====
     if(EvtMsk & EVTMSK_UART_RX_POLL) {
+        // Check control UART
         while(Uart.ProcessRx() == pdrNewCmd) OnUartCmd(&Uart);
+        // Check Imitator's UART
+        UartImProcessRx();
     }
 }
 
 void App_t::OnUartCmd(CmdUart_t *PUart) {
     LedBlink(54);
     UartCmd_t *PCmd = &PUart->Cmd;
-    __attribute__((unused)) int32_t dw32 = 0;  // May be unused in some configurations
     Uart.Printf("\r%S\r", PCmd->Name);
     // Handle command
     if(PCmd->NameIs("#Ping")) PUart->Ack(OK);
@@ -121,5 +124,55 @@ void App_t::OnUartCmd(CmdUart_t *PUart) {
         PUart->Printf("#Lines %c %c %c %c\r\n", c[0], c[1], c[2], c[3]);
     }
 
+    else if(PCmd->NameIs("#SendToIm")) {
+        if(PCmd->GetNextToken() != OK) { PUart->Ack(CMD_ERROR); return; }
+        int32_t dw=0;
+        do {
+            if(PCmd->TryConvertTokenToNumber(&dw) != OK) { PUart->Ack(CMD_ERROR); return; }
+            uint8_t b = (uint8_t)(0xFF & dw);
+            while(!(USART3->SR & USART_SR_TXE));
+            USART3->DR = b;
+        } while(PCmd->GetNextToken() == OK);
+    }
+
     else if(*PCmd->Name == '#') PUart->Ack(CMD_UNKNOWN);  // reply only #-started stuff
+}
+
+void App_t::UartImInit() {
+    // GPIO
+    PinSetupAlterFunc(GPIOB, 10, omPushPull, pudNone, AF7);
+    PinSetupAlterFunc(GPIOB, 11, omOpenDrain, pudPullUp, AF7);
+    // UART
+    rccEnableUSART3(FALSE);
+    USART3->CR1 = USART_CR1_UE;     // Enable USART
+    USART3->CR1 = USART_CR1_TE | USART_CR1_RE;        // TX & RX enable
+    USART3->BRR = Clk.APB1FreqHz / 115200;
+    USART3->CR2 = 0;
+    // RX DMA
+    USART3->CR3 = USART_CR3_DMAR;    // Enable DMA RX
+    dmaStreamAllocate     (UART_IM_DMA_RX, IRQ_PRIO_LOW, nullptr, NULL);
+    dmaStreamSetPeripheral(UART_IM_DMA_RX, &USART3->DR);
+    dmaStreamSetMemory0   (UART_IM_DMA_RX, ImRxBuf);
+    dmaStreamSetTransactionSize(UART_IM_DMA_RX, IM_RX_BUF_SZ);
+    dmaStreamSetMode      (UART_IM_DMA_RX, UART_IM_DMA_RX_MODE);
+    dmaStreamEnable       (UART_IM_DMA_RX);
+    USART3->CR1 |= USART_CR1_UE;    // Enable USART
+}
+
+void App_t::UartImProcessRx() {
+    // Number of bytes copied to buffer since restart
+    int32_t Sz = IM_RX_BUF_SZ - UART_IM_DMA_RX->channel->CNDTR;
+    if(Sz != SzOld) {
+        int32_t ByteCnt = Sz - SzOld;
+        if(ByteCnt < 0) ByteCnt += IM_RX_BUF_SZ;   // Handle buffer circulation
+        SzOld = Sz;
+        if(ByteCnt != 0) Uart.Printf("#ReplyFromIm");
+        for(int32_t i=0; i<ByteCnt; i++) {          // Iterate received bytes
+            uint8_t b = ImRxBuf[RIndx++];
+            if(RIndx >= IM_RX_BUF_SZ) RIndx = 0;
+            // Print byte
+            Uart.Printf(" %X", b);
+        } // for
+        Uart.Printf("\r\n");
+    } // if sz
 }

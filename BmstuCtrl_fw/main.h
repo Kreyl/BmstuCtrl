@@ -26,12 +26,27 @@
 #define LED_GPIO        GPIOB
 #define LED_PIN         0
 
+#define IM_RX_BUF_SZ    99
+
+#define UART_IM_DMA_RX      STM32_DMA1_STREAM3
+#define UART_IM_DMA_RX_MODE DMA_PRIORITY_LOW | \
+                            STM32_DMA_CR_MSIZE_BYTE | \
+                            STM32_DMA_CR_PSIZE_BYTE | \
+                            STM32_DMA_CR_MINC |       /* Memory pointer increase */ \
+                            STM32_DMA_CR_DIR_P2M |    /* Direction is peripheral to memory */ \
+                            STM32_DMA_CR_CIRC         /* Circular buffer enable */
+
+
 class App_t {
 private:
+    int32_t SzOld=0, RIndx=0;
 public:
     Thread *PThread;
     VirtualTimer TmrUartRx, TmrLed;
+    uint8_t ImRxBuf[IM_RX_BUF_SZ];
     void Init();
+    void UartImInit();
+    void UartImProcessRx();
     void LedBlink(uint32_t Duration_ms);
     // Events
     void OnUartCmd(CmdUart_t *PUart);
