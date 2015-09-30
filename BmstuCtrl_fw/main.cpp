@@ -86,7 +86,7 @@ void App_t::ITask() {
 void App_t::OnUartCmd(CmdUart_t *PUart) {
     LedBlink(54);
     UartCmd_t *PCmd = &PUart->Cmd;
-    Uart.Printf("\r\n%S\r\n", PCmd->Name);
+    Uart.Printf("\r%S\r", PCmd->Name);
     // Handle command
     if(PCmd->NameIs("#Ping")) PUart->Ack(OK);
 
