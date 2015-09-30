@@ -86,7 +86,7 @@ void App_t::ITask() {
 void App_t::OnUartCmd(CmdUart_t *PUart) {
     LedBlink(54);
     UartCmd_t *PCmd = &PUart->Cmd;
-    Uart.Printf("\r%S\r", PCmd->Name);
+    Uart.Printf("\r\n%S\r\n", PCmd->Name);
     // Handle command
     if(PCmd->NameIs("#Ping")) PUart->Ack(OK);
 
@@ -133,6 +133,7 @@ void App_t::OnUartCmd(CmdUart_t *PUart) {
             while(!(USART3->SR & USART_SR_TXE));
             USART3->DR = b;
         } while(PCmd->GetNextToken() == OK);
+        PUart->Ack(OK);
     }
 
     else if(*PCmd->Name == '#') PUart->Ack(CMD_UNKNOWN);  // reply only #-started stuff
